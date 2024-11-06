@@ -39,8 +39,6 @@ The solution consists of multiple components, each hosted on Azure:
 
 Here’s a quick view of the architecture:
 
-![Architecture](./docs/images/architecture.drawio.png)
-
 #### 2. **Setting Up Your Development Environment**
 
 Before you can start building your chatbot, you need to set up a few tools on your local machine. Here are the steps:
