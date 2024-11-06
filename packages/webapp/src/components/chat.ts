@@ -45,7 +45,7 @@ export const defaultOptions: ChatComponentOptions = {
   ],
   messages: [],
   strings: {
-    promptSuggestionsTitle: 'Ask anything or try an example',
+    promptSuggestionsTitle: 'Hello Yatris👋',
     citationsTitle: 'Citations:',
     followUpQuestionsTitle: 'Follow-up questions:',
     chatInputPlaceholder: 'Ask me anything...',
