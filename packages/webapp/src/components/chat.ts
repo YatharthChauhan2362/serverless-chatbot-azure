@@ -38,11 +38,7 @@ export const defaultOptions: ChatComponentOptions = {
   chunkIntervalMs: 30,
   apiUrl: '',
   enablePromptSuggestions: true,
-  promptSuggestions: [
-    'How to search and book rentals?',
-    'What is the refund policy?',
-    'How to contact a representative?',
-  ],
+  promptSuggestions: ['Python with Terraform?', 'How Python Works with DevOps?', 'Python with Ansible?'],
   messages: [],
   strings: {
     promptSuggestionsTitle: 'Hello Yatris👋',
