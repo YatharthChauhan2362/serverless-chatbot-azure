@@ -37,7 +37,9 @@ jobs:
             --tenant-id $AZURE_TENANT_ID
 
       - name: Set subscription for Azure CLI (az)
-        run: az account set --subscription $AZURE_SUBSCRIPTION_ID
+        run: |
+          az account list --output table  # Debugging: list available subscriptions
+          az account set --subscription $AZURE_SUBSCRIPTION_ID
 
       - name: Deploy application using azd
         run: azd up --no-prompt
