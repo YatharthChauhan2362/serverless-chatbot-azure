@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}  # Use the secret stored in GitHub Secrets
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,12 +27,14 @@ jobs:
 
       - name: Log in with Azure (Client Credentials)
         run: |
-          echo "${{ secrets.AZURE_CREDENTIALS }}" > "$GITHUB_WORKSPACE/azure_credentials.json"
-          az login --service-principal `
-            --username "$(jq -r .clientId $GITHUB_WORKSPACE/azure_credentials.json)" `
-            --password "$(jq -r .clientSecret $GITHUB_WORKSPACE/azure_credentials.json)" `
-            --tenant "$(jq -r .tenantId $GITHUB_WORKSPACE/azure_credentials.json)"
-        shell: pwsh
+          # Use the AZURE_CREDENTIALS secret directly without writing to a file
+          clientId=$(echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r .clientId)
+          clientSecret=$(echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r .clientSecret)
+          tenantId=$(echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r .tenantId)
+          
+          # Perform login using these values
+          az login --service-principal --username "$clientId" --password "$clientSecret" --tenant "$tenantId"
+        shell: bash
 
       - name: Remove WEBSITE_RUN_FROM_PACKAGE setting
         run: az functionapp config appsettings delete --name func-api-cz3xpwa236bls --resource-group rg-chatyatri-rg --setting-name WEBSITE_RUN_FROM_PACKAGE
