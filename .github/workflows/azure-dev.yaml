@@ -25,13 +25,21 @@ jobs:
         with:
           node-version: 20
 
+      - name: Debug AZURE_CREDENTIALS (Do not print in production)
+        run: |
+          echo "Checking the AZURE_CREDENTIALS format..."
+          echo "${{ secrets.AZURE_CREDENTIALS }}" | jq .  # This will help debug if it's correctly formatted
+        shell: bash
+
       - name: Log in with Azure (Client Credentials)
         run: |
-          # Use the AZURE_CREDENTIALS secret directly without writing to a file
-          clientId=$(echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r .clientId)
-          clientSecret=$(echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r .clientSecret)
-          tenantId=$(echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r .tenantId)
+          # Ensure the credentials are correctly parsed
+          echo "${{ secrets.AZURE_CREDENTIALS }}" > azure_credentials.json
           
+          clientId=$(jq -r .clientId azure_credentials.json)
+          clientSecret=$(jq -r .clientSecret azure_credentials.json)
+          tenantId=$(jq -r .tenantId azure_credentials.json)
+
           # Perform login using these values
           az login --service-principal --username "$clientId" --password "$clientSecret" --tenant "$tenantId"
         shell: bash
