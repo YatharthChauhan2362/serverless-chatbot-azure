@@ -11,49 +11,32 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install azd
-        uses: Azure/setup-azd@v1.0.0
+      - name: Setup Azure CLI
+        uses: azure/setup-azcli@v1
 
       - name: Install Nodejs
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: '20.x'
 
-      - name: Log in with Azure (Federated Credentials)
-        if: ${{ secrets.AZURE_CLIENT_ID != '' }}
-        run: |
-          azd auth login \
-            --client-id "${{ secrets.AZURE_CLIENT_ID }}" \
-            --federated-credential-provider "github" \
-            --tenant-id "${{ secrets.AZURE_TENANT_ID }}"
-        shell: bash
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Log in with Azure (Client Credentials)
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
-        run: |
-          echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r '.clientSecret' | xargs -I {} echo "::add-mask::{}"
-          azd auth login \
-            --client-id "$(echo ${{ secrets.AZURE_CREDENTIALS }} | jq -r '.clientId')" \
-            --client-secret "$(echo ${{ secrets.AZURE_CREDENTIALS }} | jq -r '.clientSecret')" \
-            --tenant-id "$(echo ${{ secrets.AZURE_CREDENTIALS }} | jq -r '.tenantId')"
-        shell: bash
+      - name: Set Azure Subscription
+        run: az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Remove WEBSITE_RUN_FROM_PACKAGE setting after successful login
       - name: Remove WEBSITE_RUN_FROM_PACKAGE setting
-        run: az functionapp config appsettings delete --name func-api-cz3xpwa236bls --resource-group rg-chatyatri-rg --setting-name WEBSITE_RUN_FROM_PACKAGE
+        run: |
+          az functionapp config appsettings delete --name func-api-cz3xpwa236bls --resource-group rg-chatyatri-rg --setting-name WEBSITE_RUN_FROM_PACKAGE
 
       - name: Provision and deploy application
         run: azd up --no-prompt
         env:
           AZURE_ENV_NAME: ${{ secrets.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
