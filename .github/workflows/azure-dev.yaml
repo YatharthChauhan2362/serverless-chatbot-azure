@@ -1,40 +1,29 @@
-name: Deploy to Azure Function App
-on:
-  workflow_dispatch:
-  push:
-    branches: [main]
+@YatharthChauhan2362 ➜ /workspaces/serverless-chatbot-azure (main) $ azd up
 
-permissions:
-  id-token: write
-  contents: read
+Packaging services (azd package)
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+  (✓) Done: Packaging service api
+  - Package Output: /tmp/serverless-chat-langchainjs-api-azddeploy-1731401356.zip
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20.x'
+  (✓) Done: Packaging service webapp
+  - Package Output: dist
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          enable-AzPSSession: false
-          environment: azurecloud
-          allow-no-subscriptions: false
-          audience: api://AzureADTokenExchange
-          auth-type: SERVICE_PRINCIPAL
+Provisioning Azure resources (azd provision)
+Provisioning Azure resources can take some time.
 
-      - name: Deploy to Azure Function App
-        run: |
-          # Your deployment commands here
-          echo "Deploying to Azure Function App"
+Subscription: Yatharth Chauhan - Enterprise Subscription (a7753200-3f73-4788-8640-7798e592cc84)
+Location: East US 2
 
-      - name: Logout from Azure
-        if: always()
-        run: az logout
+  (-) Skipped: Didn't find new changes.
+
+Deploying services (azd deploy)
+
+  (✓) Done: Deploying service api
+  - Endpoint: https://func-api-cz3xpwa236bls.azurewebsites.net/
+
+  (✓) Done: Deploying service webapp
+  - Endpoint: https://gentle-pebble-0d517420f.5.azurestaticapps.net/
+
+
+SUCCESS: Your up workflow to provision and deploy to Azure completed in 4 minutes 32 seconds.
+@YatharthChauhan2362 ➜ /workspaces/serverless-chatbot-azure (main) $ 
