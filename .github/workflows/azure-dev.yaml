@@ -1,63 +1,51 @@
-name: Deploy on Azure
+name: Deploy to Azure
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # Allows manual trigger of the workflow
   push:
-    branches: [main] # Adjust to your mainline branch if different
+    branches: [main]   # Runs on push to main branch, adjust as needed
 
 permissions:
-  id-token: write
   contents: read
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+
     env:
-      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-      AZURE_ENV_NAME: "production"  # Set the environment name here
-      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-    
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_ENV_NAME: "prod"  # Change this to your environment name if different
+      AZURE_LOCATION: "eastus"  # Set your Azure region
+
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install azd
-        uses: Azure/setup-azd@v1.0.0
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Azure Developer CLI (azd)
+        uses: Azure/setup-azd@v1
         with:
-          node-version: 20
+          version: "latest"
 
-      - name: Log in with Azure (Federated Credentials)
-        if: ${{ env.AZURE_CLIENT_ID != '' }}
+      - name: Log in to Azure
         run: |
-          azd auth login `
-            --client-id $Env:AZURE_CLIENT_ID `
-            --federated-credential-provider github `
-            --tenant-id $Env:AZURE_TENANT_ID
-        shell: pwsh
-
-      - name: Log in with Azure (Client Credentials)
-        if: ${{ env.AZURE_CREDENTIALS != '' }}
-        run: |
-          $info = $Env:AZURE_CREDENTIALS | ConvertFrom-Json -AsHashtable
-          Write-Host "::add-mask::$($info.clientSecret)"
-
-          azd auth login `
-            --client-id "$($info.clientId)" `
-            --client-secret "$($info.clientSecret)" `
-            --tenant-id "$($info.tenantId)"
-        shell: pwsh
+          az login --service-principal \
+            --username $AZURE_CLIENT_ID \
+            --password $AZURE_CLIENT_SECRET \
+            --tenant $AZURE_TENANT_ID
         env:
-          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-      - name: Provision and deploy application
+      - name: Set subscription
+        run: az account set --subscription $AZURE_SUBSCRIPTION_ID
+
+      - name: Deploy application using azd
         run: azd up --no-prompt
         env:
-          AZURE_ENV_NAME: ${{ env.AZURE_ENV_NAME }}  # Passes the environment name to azd
+          AZURE_ENV_NAME: ${{ env.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
-          AZURE_SUBSCRIPTION_ID: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
