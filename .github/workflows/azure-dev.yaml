@@ -2,15 +2,8 @@ name: Deploy on Azure
 on:
   workflow_dispatch:
   push:
-    # Run when commits are pushed to mainline branch (main)
-    # Set this to the mainline branch you are using
     branches: [main]
 
-# GitHub Actions workflow to deploy to Azure using azd
-# To configure required secrets for connecting to Azure, simply run `azd pipeline config`
-
-# Set up permissions for deploying with secretless Azure federated credentials
-# https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure?tabs=azure-portal%2Clinux#set-up-azure-login-with-openid-connect-authentication
 permissions:
   id-token: write
   contents: read
@@ -58,6 +51,7 @@ jobs:
         env:
           AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
+      # Remove WEBSITE_RUN_FROM_PACKAGE setting after successful login
       - name: Remove WEBSITE_RUN_FROM_PACKAGE setting
         run: az functionapp config appsettings delete --name func-api-cz3xpwa236bls --resource-group rg-chatyatri-rg --setting-name WEBSITE_RUN_FROM_PACKAGE
 
