@@ -34,11 +34,9 @@ jobs:
       - name: Log in with Azure (Client Credentials)
         run: |
           # Ensure the credentials are correctly parsed
-          echo "${{ secrets.AZURE_CREDENTIALS }}" > azure_credentials.json
-          
-          clientId=$(jq -r .clientId azure_credentials.json)
-          clientSecret=$(jq -r .clientSecret azure_credentials.json)
-          tenantId=$(jq -r .tenantId azure_credentials.json)
+          clientId=$(echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r .clientId)
+          clientSecret=$(echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r .clientSecret)
+          tenantId=$(echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r .tenantId)
 
           # Perform login using these values
           az login --service-principal --username "$clientId" --password "$clientSecret" --tenant "$tenantId"
