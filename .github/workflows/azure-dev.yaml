@@ -2,8 +2,15 @@ name: Deploy on Azure
 on:
   workflow_dispatch:
   push:
+    # Run when commits are pushed to mainline branch (main)
+    # Set this to the mainline branch you are using
     branches: [main]
 
+# GitHub Actions workflow to deploy to Azure using azd
+# To configure required secrets for connecting to Azure, simply run `azd pipeline config`
+
+# Set up permissions for deploying with secretless Azure federated credentials
+# https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure?tabs=azure-portal%2Clinux#set-up-azure-login-with-openid-connect-authentication
 permissions:
   id-token: write
   contents: read
@@ -12,7 +19,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}  # Use the secret stored in GitHub Secrets
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,28 +35,32 @@ jobs:
         with:
           node-version: 20
 
-      - name: Debug AZURE_CREDENTIALS (Do not print in production)
+      - name: Log in with Azure (Federated Credentials)
+        if: ${{ env.AZURE_CLIENT_ID != '' }}
         run: |
-          echo "Checking the AZURE_CREDENTIALS format..."
-          echo "${{ secrets.AZURE_CREDENTIALS }}" | jq .  # This will help debug if it's correctly formatted
-        shell: bash
+          azd auth login ` 
+            --client-id "$Env:AZURE_CLIENT_ID" ` 
+            --federated-credential-provider "github" ` 
+            --tenant-id "$Env:AZURE_TENANT_ID"
+        shell: pwsh
 
       - name: Log in with Azure (Client Credentials)
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
         run: |
-          # Ensure the credentials are correctly parsed
-          clientId=$(echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r .clientId)
-          clientSecret=$(echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r .clientSecret)
-          tenantId=$(echo "${{ secrets.AZURE_CREDENTIALS }}" | jq -r .tenantId)
+          $info = $Env:AZURE_CREDENTIALS | ConvertFrom-Json -AsHashtable;
+          Write-Host "::add-mask::$($info.clientSecret)"
 
-          # Perform login using these values
-          az login --service-principal --username "$clientId" --password "$clientSecret" --tenant "$tenantId"
-        shell: bash
-
-      - name: Remove WEBSITE_RUN_FROM_PACKAGE setting
-        run: az functionapp config appsettings delete --name func-api-cz3xpwa236bls --resource-group rg-chatyatri-rg --setting-name WEBSITE_RUN_FROM_PACKAGE
+          azd auth login ` 
+            --client-id "$($info.clientId)" ` 
+            --client-secret "$($info.clientSecret)" ` 
+            --tenant-id "$($info.tenantId)"
+        shell: pwsh
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Provision and deploy application
         run: azd up --no-prompt
         env:
           AZURE_ENV_NAME: ${{ secrets.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
