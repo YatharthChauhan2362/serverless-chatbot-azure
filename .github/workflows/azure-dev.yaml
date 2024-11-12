@@ -1,48 +1,63 @@
-name: Deploy to Azure
-
+name: Deploy on Azure
 on:
   workflow_dispatch:
   push:
     branches: [main]
 
 permissions:
+  id-token: write
   contents: read
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-
     env:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      AZURE_ENV_NAME: "prod"
-      AZURE_LOCATION: "eastus"
-
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Azure Developer CLI (azd)
-        run: |
-          curl -fsSL https://aka.ms/install-azd.sh | bash
-          echo "Azure Developer CLI (azd) installed successfully"
+      - name: Install azd
+        uses: Azure/setup-azd@v1.0.0
 
-      - name: Log in to Azure with azd
-        run: |
-          azd auth login \
-            --client-id $AZURE_CLIENT_ID \
-            --client-secret $AZURE_CLIENT_SECRET \
-            --tenant-id $AZURE_TENANT_ID
+      - name: Install Nodejs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-      - name: Set subscription for Azure CLI (az)
+      - name: Log in with Azure (Federated Credentials)
+        if: ${{ env.AZURE_CLIENT_ID != '' }}
         run: |
-          az account list --output table  # Debugging: list available subscriptions
-          az account set --subscription $AZURE_SUBSCRIPTION_ID
+          azd auth login `
+            --client-id "$Env:AZURE_CLIENT_ID" `
+            --federated-credential-provider "github" `
+            --tenant-id "$Env:AZURE_TENANT_ID"
+        shell: pwsh
 
-      - name: Deploy application using azd
+      - name: Log in with Azure (Client Credentials)
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
+        run: |
+          $info = $Env:AZURE_CREDENTIALS | ConvertFrom-Json -AsHashtable;
+          Write-Host "::add-mask::$($info.clientSecret)"
+
+          azd auth login `
+            --client-id "$($info.clientId)" `
+            --client-secret "$($info.clientSecret)" `
+            --tenant-id "$($info.tenantId)"
+        shell: pwsh
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Remove WEBSITE_RUN_FROM_PACKAGE setting after successful login
+      - name: Remove WEBSITE_RUN_FROM_PACKAGE setting
+        run: az functionapp config appsettings delete --name func-api-cz3xpwa236bls --resource-group rg-chatyatri-rg --setting-name WEBSITE_RUN_FROM_PACKAGE
+
+      - name: Provision and deploy application
         run: azd up --no-prompt
         env:
-          AZURE_ENV_NAME: ${{ env.AZURE_ENV_NAME }}
-          AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
+          AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
