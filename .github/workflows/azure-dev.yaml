@@ -1,9 +1,9 @@
 name: Deploy to Azure
 
 on:
-  workflow_dispatch:   # Allows manual trigger of the workflow
+  workflow_dispatch:
   push:
-    branches: [main]   # Runs on push to main branch, adjust as needed
+    branches: [main]   # Runs on push to the main branch
 
 permissions:
   contents: read
@@ -24,10 +24,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Azure Developer CLI (azd)
-        uses: Azure/setup-azd@v1
-        with:
-          version: "latest"
+      - name: Install Azure Developer CLI (azd)
+        run: |
+          curl -fsSL https://aka.ms/install-azd.sh | bash
+          echo "Azure Developer CLI (azd) installed successfully"
 
       - name: Log in to Azure
         run: |
