@@ -1,29 +1,42 @@
-@YatharthChauhan2362 ➜ /workspaces/serverless-chatbot-azure (main) $ azd up
+name: Deploy on Azure
 
-Packaging services (azd package)
+on:
+  push:
+    branches:
+      - main  # Trigger on commits to the main branch
+  workflow_dispatch:  # Allow manual triggers from the GitHub UI
 
-  (✓) Done: Packaging service api
-  - Package Output: /tmp/serverless-chat-langchainjs-api-azddeploy-1731401356.zip
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # Using the latest Ubuntu runner
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2  # Checkout the repository to the GitHub Actions runner
 
-  (✓) Done: Packaging service webapp
-  - Package Output: dist
+      - name: Set up Azure CLI
+        uses: azure/setup-azcli@v1  # Setup Azure CLI for use in subsequent steps
 
-Provisioning Azure resources (azd provision)
-Provisioning Azure resources can take some time.
+      - name: Log in to Azure
+        uses: azure/login@v2  # Perform Azure login using service principal credentials
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"  # Optional: specify if required
+            }
 
-Subscription: Yatharth Chauhan - Enterprise Subscription (a7753200-3f73-4788-8640-7798e592cc84)
-Location: East US 2
+      - name: Install Azure Developer CLI
+        run: npm install -g azure-dev@latest  # Install the latest Azure Developer CLI for deployment
 
-  (-) Skipped: Didn't find new changes.
+      - name: Deploy using Azure Developer CLI
+        run: azd up --no-prompt  # Deploy to Azure using 'azd up', ensures that interaction is non-blocking
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}  # Use Azure subscription ID from secrets
 
-Deploying services (azd deploy)
+      - name: Print deployment endpoint
+        run: echo "Deployment successful"  # Placeholder; replace with actual command to fetch or display deployment endpoint if necessary
 
-  (✓) Done: Deploying service api
-  - Endpoint: https://func-api-cz3xpwa236bls.azurewebsites.net/
-
-  (✓) Done: Deploying service webapp
-  - Endpoint: https://gentle-pebble-0d517420f.5.azurestaticapps.net/
-
-
-SUCCESS: Your up workflow to provision and deploy to Azure completed in 4 minutes 32 seconds.
-@YatharthChauhan2362 ➜ /workspaces/serverless-chatbot-azure (main) $ 
+      - name: Logout from Azure
+        if: always()  # This step will run regardless
