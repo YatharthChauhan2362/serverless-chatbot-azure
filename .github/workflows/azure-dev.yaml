@@ -3,7 +3,7 @@ name: Deploy to Azure
 on:
   workflow_dispatch:
   push:
-    branches: [main]   # Runs on push to the main branch
+    branches: [main]
 
 permissions:
   contents: read
@@ -17,8 +17,8 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      AZURE_ENV_NAME: "prod"  # Change this to your environment name if different
-      AZURE_LOCATION: "eastus"  # Set your Azure region
+      AZURE_ENV_NAME: "prod"
+      AZURE_LOCATION: "eastus"
 
     steps:
       - name: Checkout code
@@ -29,18 +29,14 @@ jobs:
           curl -fsSL https://aka.ms/install-azd.sh | bash
           echo "Azure Developer CLI (azd) installed successfully"
 
-      - name: Log in to Azure
+      - name: Log in to Azure with azd
         run: |
-          az login --service-principal \
-            --username $AZURE_CLIENT_ID \
-            --password $AZURE_CLIENT_SECRET \
-            --tenant $AZURE_TENANT_ID
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          azd auth login \
+            --client-id $AZURE_CLIENT_ID \
+            --client-secret $AZURE_CLIENT_SECRET \
+            --tenant-id $AZURE_TENANT_ID
 
-      - name: Set subscription
+      - name: Set subscription for Azure CLI (az)
         run: az account set --subscription $AZURE_SUBSCRIPTION_ID
 
       - name: Deploy application using azd
@@ -48,4 +44,3 @@ jobs:
         env:
           AZURE_ENV_NAME: ${{ env.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
