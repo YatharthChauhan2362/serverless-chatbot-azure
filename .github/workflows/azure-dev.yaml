@@ -58,6 +58,9 @@ jobs:
         env:
           AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Remove WEBSITE_RUN_FROM_PACKAGE setting
+        run: az functionapp config appsettings delete --name func-api-cz3xpwa236bls --resource-group rg-chatyatri-rg --setting-name WEBSITE_RUN_FROM_PACKAGE
+
       - name: Provision and deploy application
         run: azd up --no-prompt
         env:
