@@ -1,32 +1,29 @@
-name: Azure App Deployment
+name: Deploy to Azure with Azure Developer CLI
 
 on:
   push:
     branches:
-      - main  # Trigger deployment on push to the main branch
+      - main  # Triggers the workflow on push events to the main branch.
+  workflow_dispatch:  # Allows you to manually trigger the workflow from GitHub UI.
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    env:
-      AZD_ENVIRONMENT_NAME: deployment-env-1  # Example environment name, change as needed
-
+    runs-on: ubuntu-latest  # Specifies the runner environment.
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3  # Checks out your repository under $GITHUB_WORKSPACE, so your job can access it.
 
-    - name: Set up Azure CLI
-      uses: azure/CLI@v1
-      with:
-        inlineScript: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+      - name: Set up Azure CLI
+        uses: azure/setup-azcli@v1  # Setup Azure CLI for use in the subsequent steps.
+
+      - name: Azure CLI Login and azd Operation
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} -t ${{ secrets.AZURE_TENANT_ID }}
           az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-    - name: Install Azure Developer CLI (azd)
-      run: |
-        curl -fsSL https://aka.ms/install-azd.sh | bash
-
-    - name: Deploy with azd up
-      run: azd up --environment ${{ env.AZD_ENVIRONMENT_NAME }} --no-prompt
-      env:
-        AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azd up --environment deployment-env-1 --no-prompt
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
