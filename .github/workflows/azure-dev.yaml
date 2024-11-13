@@ -3,12 +3,14 @@ name: Azure App Deployment
 on:
   push:
     branches:
-      - main  # Trigger deployment on push to main branch
+      - main  # Trigger deployment on push to the main branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+    env:
+      AZD_ENVIRONMENT_NAME: deployment-env-1  # Example environment name, change as needed
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -25,4 +27,6 @@ jobs:
         curl -fsSL https://aka.ms/install-azd.sh | bash
 
     - name: Deploy with azd up
-      run: azd up
+      run: azd up --environment ${{ env.AZD_ENVIRONMENT_NAME }} --no-prompt
+      env:
+        AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
